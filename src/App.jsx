@@ -8,10 +8,13 @@ const App = () => {
   const [blogs, setBlogs] = useState([])
   const [newBlog, setNewBlog] = useState('')
   const [showAll, setShowAll] = useState(true)
-  const [errorMessage, setErrorMessage] = useState(null)
+  const [message, setMessage] = useState(null)
   const [username, setUsername] = useState('') 
   const [password, setPassword] = useState('') 
   const [user, setUser] = useState(null)
+  const [newBlogTitle, setNewBlogTitle] = useState('')
+  const [newBlogAuthor, setNewBlogAuthor] = useState('')
+  const [newBlogUrl, setNewBlogUrl] = useState('')
 
   useEffect(() => {
     blogService.getAll().then(blogs =>
@@ -41,18 +44,56 @@ const App = () => {
     blogService.setToken(user.token)
     setUser(user)      
     setUsername('')      
-    setPassword('')    
-  } catch (exception) {      
-      setErrorMessage('wrong credentials')      
+    setPassword('')
+    setMessage('Login successfull')
     setTimeout(() => {        
-      setErrorMessage(null)      
+      setMessage(null)      
+    }, 5000)     
+  } catch (exception) {      
+      setMessage('wrong credentials')      
+    setTimeout(() => {        
+      setMessage(null)      
     }, 5000)    
   }
+  }
+
+  const handleBlogSubmit = async (event) => {
+    event.preventDefault()
+
+    const newBlog = {
+      title: newBlogTitle,
+      author: newBlogAuthor,
+      url: newBlogUrl,
+    }
+
+    try {
+      const createdBlog = await blogService.create(newBlog)
+
+      setBlogs([...blogs, createdBlog])
+
+      setNewBlogTitle('')
+      setNewBlogAuthor('')
+      setNewBlogUrl('')
+      setMessage(`New blog "${newBlogTitle}" by "${newBlogAuthor}"`)
+
+      setTimeout(() => {        
+        setMessage(null)      
+      }, 5000)   
+    } catch (exception) {
+      setMessage('Error creating a new blog')
+      setTimeout(() => {
+        setMessage(null)
+      }, 5000)
+    }
   }
 
   const handleLogout = () => {
     window.localStorage.removeItem('loggedappUser')
     setUser(null)
+    setMessage('Logout successfull')
+      setTimeout(() => {
+        setMessage(null)
+      }, 5000)
   }
 
   const loginForm = () => (
@@ -81,6 +122,34 @@ const App = () => {
 
   const blogForm = () => (
     <div>
+      <h2>create new</h2>
+      <form onSubmit={handleBlogSubmit}>
+        <div>
+          Title:
+          <input
+            type="text"
+            value={newBlogTitle}
+            onChange={(e) => setNewBlogTitle(e.target.value)}
+          />
+        </div>
+        <div>
+          Author:
+          <input
+            type="text"
+            value={newBlogAuthor}
+            onChange={(e) => setNewBlogAuthor(e.target.value)}
+          />
+        </div>
+        <div>
+          URL:
+          <input
+            type="text"
+            value={newBlogUrl}
+            onChange={(e) => setNewBlogUrl(e.target.value)}
+          />
+        </div>
+        <button type="submit">create</button>
+      </form>
       <ul>
         {blogs.map((blog, i) => 
           <Blog
@@ -103,7 +172,7 @@ const App = () => {
     <div>
       <h1>Blogs</h1>
 
-      <Notification message={errorMessage} />
+      <Notification message={message} />
 
       {!user && loginForm()}      
       {user && <div>
