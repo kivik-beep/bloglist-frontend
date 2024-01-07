@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Blog from './components/Blog'
 import Notification from './components/Notification'
 import blogService from './services/blogs'
 import loginService from './services/login'
+import Togglable from './components/Togglable'
+import BlogForm from './components/BlogForm'
 
 const App = () => {
   const [blogs, setBlogs] = useState([])
-  const [newBlog, setNewBlog] = useState('')
-  const [showAll, setShowAll] = useState(true)
   const [message, setMessage] = useState(null)
   const [username, setUsername] = useState('') 
   const [password, setPassword] = useState('') 
@@ -57,35 +57,6 @@ const App = () => {
   }
   }
 
-  const handleBlogSubmit = async (event) => {
-    event.preventDefault()
-
-    const newBlog = {
-      title: newBlogTitle,
-      author: newBlogAuthor,
-      url: newBlogUrl,
-    }
-
-    try {
-      const createdBlog = await blogService.create(newBlog)
-
-      setBlogs([...blogs, createdBlog])
-
-      setNewBlogTitle('')
-      setNewBlogAuthor('')
-      setNewBlogUrl('')
-      setMessage(`New blog "${newBlogTitle}" by "${newBlogAuthor}"`)
-
-      setTimeout(() => {        
-        setMessage(null)      
-      }, 5000)   
-    } catch (exception) {
-      setMessage('Error creating a new blog')
-      setTimeout(() => {
-        setMessage(null)
-      }, 5000)
-    }
-  }
 
   const handleLogout = () => {
     window.localStorage.removeItem('loggedappUser')
@@ -120,53 +91,22 @@ const App = () => {
     </form>      
   )
 
-  const blogForm = () => (
-    <div>
-      <h2>create new</h2>
-      <form onSubmit={handleBlogSubmit}>
-        <div>
-          Title:
-          <input
-            type="text"
-            value={newBlogTitle}
-            onChange={(e) => setNewBlogTitle(e.target.value)}
-          />
-        </div>
-        <div>
-          Author:
-          <input
-            type="text"
-            value={newBlogAuthor}
-            onChange={(e) => setNewBlogAuthor(e.target.value)}
-          />
-        </div>
-        <div>
-          URL:
-          <input
-            type="text"
-            value={newBlogUrl}
-            onChange={(e) => setNewBlogUrl(e.target.value)}
-          />
-        </div>
-        <button type="submit">create</button>
-      </form>
-      <ul>
-        {blogs.map((blog, i) => 
-          <Blog
-            key={i}
-            blog={blog} 
-          />
-        )}
-      </ul>
-      <div>
-        <button onClick={handleLogout}>
-          Logout
-        </button>
-      </div> 
-    </div>
-  )
+  const blogFormRef = useRef()
 
-  
+  const addBlog = (blogObject) => {
+    blogFormRef.current.toggleVisibility()
+    blogService
+      .create(blogObject)
+      .then(returnedBlog => {
+        setBlogs(blogs.concat(returnedBlog))
+      })
+  }
+
+  const blogForm = () => (
+    <Togglable buttonLabel="uusi blogi" ref={blogFormRef} >
+      <BlogForm createBlog={addBlog}/>
+    </Togglable>
+  )
 
   return (
     <div>
@@ -177,7 +117,21 @@ const App = () => {
       {!user && loginForm()}      
       {user && <div>
        <p>{user.name} logged in</p>
-         {blogForm()}
+       <h2>Blogit</h2>
+       {blogForm()}
+         <div>
+         <ul>
+        {blogs.map((blog, i) => 
+          <Blog
+            key={i}
+            blog={blog} 
+          />
+        )}
+      </ul>
+        <button onClick={handleLogout}>
+          Logout
+        </button>
+      </div> 
       </div>
     }
  
@@ -186,3 +140,4 @@ const App = () => {
 }
 
 export default App
+
